@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/main_graph"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="16dp"
+        android:layout_weight="1"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Тоника:"
+                android:textSize="10pt"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"/>
+            <TextView
+                android:id="@+id/tonic_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="null"
+                android:textSize="10pt"
+                android:layout_weight="1"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Пики за сессию:"
+                android:textSize="10pt"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"/>
+            <TextView
+                android:id="@+id/peaks_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="null"
+                android:textSize="10pt"
+                android:layout_weight="1"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Время заметки:"
+                android:textSize="10pt"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:layout_gravity="center"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <EditText
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:hint="00"
+                    android:textSize="10pt"
+                    android:inputType="number" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=":"
+                    android:textSize="10pt"/>
+                <EditText
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:hint="00"
+                    android:inputType="number"
+                    android:textSize="10pt"/>
+            </LinearLayout>
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Заметка:"
+                android:textSize="10pt"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"/>
+            <EditText
+                android:id="@+id/keep"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="keep"
+                android:textSize="10pt"/>
+        </LinearLayout>
+        <Button
+            android:id="@+id/save_keep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text = "Записать заметку"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/start_rec"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Начать запись"
+                android:layout_weight="1"
+                android:textSize="7pt"
+                android:layout_margin="3dp"
+                android:layout_gravity="center"/>
+            <Button
+                android:id="@+id/stop_rec"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_margin="3dp"
+                android:text="Остановить запись"/>
+        </LinearLayout>
+
+
+    </LinearLayout>
+</LinearLayout>
