@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun startApp(){
+    private fun startApp(){
         if(device.connectionState.equals(RxBleConnection.RxBleConnectionState.CONNECTED)){
             supportFragmentManager.beginTransaction()
                 .replace(R.id.container, MainFragment())

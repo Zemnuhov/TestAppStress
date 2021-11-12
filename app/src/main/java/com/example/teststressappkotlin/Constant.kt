@@ -12,5 +12,9 @@ object Constant {
     var context: Context? = null
     var daggerObject: AppComponent? = null
 
+    fun convertValue(value: Int): Int {
+        return value * 10000 / 1023
+    }
+
 
 }

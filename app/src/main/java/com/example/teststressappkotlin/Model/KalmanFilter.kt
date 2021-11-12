@@ -1,6 +1,6 @@
 package com.example.teststressappkotlin.Model
 
-class KalmanFilter(val Q: Double, val R:Double, val F:Double = 1.0, val H:Double = 1.0) {
+class KalmanFilter(val F: Double, val H:Double, val Q:Double = 1.0, val R:Double = 1.0) {
     private var X0: Double? = null
     private var P0: Double? = null
     private var state: Double? = null
@@ -11,14 +11,15 @@ class KalmanFilter(val Q: Double, val R:Double, val F:Double = 1.0, val H:Double
         this.covariance = covariance
     }
 
-    public fun correct(value: Double){
-        X0 = F* state!!;
-        P0 = F* covariance!! *F + Q;
+    public fun correct(value: Double) : Double{
+        X0 = F* state!!
+        P0 = F* covariance!! *F + Q
 
         //measurement update - correction
-        val K = H* P0!! /(H*P0!!*H + R);
-        state = X0!! + K*(value - H*X0!!);
-        covariance = (1 - K*H)*P0!!;
+        val K = H* P0!! /(H*P0!!*H + R)
+        state = X0!! + K*(value - H*X0!!)
+        covariance = (1 - K*H)*P0!!
+        return state!!
     }
 }
 /*Применение...

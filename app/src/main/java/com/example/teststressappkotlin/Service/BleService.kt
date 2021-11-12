@@ -27,19 +27,22 @@ import java.util.concurrent.TimeUnit
 
 class BleService: Service() {
     private val binder = LocalBinder()
-    //--------------Device UUID--------------//
-    private val notificationDataUUID: UUID = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb")
-    private val writePeaksUUID: UUID = UUID.fromString("0000ffe2-0000-1000-8000-00805f9b34fb")
-    private val writeTonicUUID: UUID = UUID.fromString("0000ffe3-0000-1000-8000-00805f9b34fb")
-    private val writeTimeUUID: UUID = UUID.fromString("0000ffe4-0000-1000-8000-00805f9b34fb")
+    companion object{
+        //--------------Device UUID--------------//
+        val notificationDataUUID: UUID = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb")
+        val writePeaksUUID: UUID = UUID.fromString("0000ffe2-0000-1000-8000-00805f9b34fb")
+        val writeTonicUUID: UUID = UUID.fromString("0000ffe3-0000-1000-8000-00805f9b34fb")
+        val writeTimeUUID: UUID = UUID.fromString("0000ffe4-0000-1000-8000-00805f9b34fb")
+    }
+
 
 
     //----------------BLEInstruments----------------//
     @Inject lateinit var device: RxBleDevice
     @Inject lateinit var connectionObservable: Observable<RxBleConnection>
 
-    var isRecoding = false
-    lateinit var writer:CSVWriter
+    private var isRecoding = false
+    private lateinit var writer:CSVWriter
 
     override fun onCreate() {
         super.onCreate()
@@ -86,7 +89,7 @@ class BleService: Service() {
     }
 
     @SuppressLint("SimpleDateFormat")
-    public fun startRecoding(){
+    fun startRecoding(){
         isRecoding = true
         val dateFormat = SimpleDateFormat("dd/MM/yy HH:mm:ss")
         writer = CSVWriter(FileWriter("Egor "+dateFormat.format(Date())))
@@ -94,7 +97,7 @@ class BleService: Service() {
 
     }
 
-     public fun stopRecoding(){
+     fun stopRecoding(){
         isRecoding = false
         writer.writeNext(arrayOf("0","0","0","0"))
         writer.close()
