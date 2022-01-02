@@ -73,6 +73,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1">
                 <EditText
+                    android:id="@+id/hour"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:hint="00"
@@ -84,6 +85,7 @@
                     android:text=":"
                     android:textSize="10pt"/>
                 <EditText
+                    android:id="@+id/minute"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:hint="00"

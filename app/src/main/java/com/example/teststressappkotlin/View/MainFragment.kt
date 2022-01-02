@@ -1,13 +1,20 @@
 package com.example.teststressappkotlin.View
 
+import android.annotation.SuppressLint
+import android.app.Service
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import com.example.teststressappkotlin.Constant
 import com.example.teststressappkotlin.Model.KalmanFilter
@@ -19,12 +26,19 @@ import com.jjoe64.graphview.helper.DateAsXAxisLabelFormatter
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
 import com.jjoe64.graphview.series.PointsGraphSeries
+import com.opencsv.CSVWriter
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.ObservableSource
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.functions.Function
 import io.reactivex.schedulers.Schedulers
+import java.io.File
+import java.io.FileWriter
 import java.nio.ByteBuffer
+import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.*
 import javax.inject.Inject
 
@@ -32,14 +46,19 @@ class MainFragment: Fragment() {
     private var servicePresenter: ServicePresenter = ServicePresenter()
     private lateinit var startRecodingButton: Button
     private lateinit var stopRecodingButton: Button
-    private lateinit var graph: GraphView
-    @Inject lateinit var connection: Observable<RxBleConnection>
-    private var pastValue = 0.0
-
-    private val normalSeries = LineGraphSeries(arrayOf<DataPoint>())
-    private val peaksSeries = PointsGraphSeries(arrayOf<DataPoint>())
+    private lateinit var saveKeepButton: Button
+    private lateinit var keepEditText: EditText
+    private lateinit var hourEditText: EditText
+    private lateinit var minuteEditText: EditText
+    lateinit var mainView: View
+    private lateinit var peaksTextView: TextView
+    private lateinit var tonicTextView: TextView
+    lateinit var graph: PhasicGraph
+    var SHARED_PREFERENCES_TAG = "STRESS_APP"
+    lateinit var disposable: Disposable
 
     init {
+        Constant.daggerObject!!.inject(this)
         servicePresenter.connectService()
     }
 
@@ -47,23 +66,28 @@ class MainFragment: Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        val view = inflater.inflate(R.layout.main_fragment,container,false)
-
-        startBleService()
+    ): View {
+        mainView = inflater.inflate(R.layout.main_fragment,container,false)
+        graph = PhasicGraph(mainView)
         initViews()
-        settingGraph()
-        setBleListener()
-
-        return view
+        startBleService()
+        setConnectionObserver()
+        return mainView
     }
 
     private fun initViews(){
-        graph = view?.findViewById(R.id.main_graph)!!
-        startRecodingButton = view?.findViewById(R.id.start_rec )!!
-        stopRecodingButton = view?.findViewById(R.id.stop_rec)!!
+        startRecodingButton = mainView.findViewById(R.id.start_rec )!!
+        stopRecodingButton = mainView.findViewById(R.id.stop_rec)!!
+        saveKeepButton = mainView.findViewById(R.id.save_keep)!!
+        keepEditText = mainView.findViewById(R.id.keep)
+        tonicTextView = mainView.findViewById(R.id.tonic_value)
+        hourEditText = mainView.findViewById(R.id.hour)
+        minuteEditText = mainView.findViewById(R.id.minute)
+        peaksTextView = mainView.findViewById(R.id.peaks_value)
         setListeners()
+        setTonicListener()
     }
+
 
     private fun setListeners(){
         startRecodingButton.setOnClickListener{
@@ -72,10 +96,35 @@ class MainFragment: Fragment() {
         stopRecodingButton.setOnClickListener{
             servicePresenter.stopRecoding()
         }
+        saveKeepButton.setOnClickListener{
+            val keep = keepEditText.text.toString()
+            savingKeep(keep)
+        }
+    }
+
+    fun getTime() : Calendar{
+        var time = Calendar.getInstance()
+        if(hourEditText.text.length==2&&minuteEditText.text.length == 2) {
+            time.set(Calendar.HOUR_OF_DAY, hourEditText.text.toString().toInt())
+            time.set(Calendar.MINUTE, minuteEditText.text.toString().toInt())
+            return time
+        }
+        return time
+    }
+
+    fun savingKeep(keep: String){
+        val path = context?.getExternalFilesDir("files")
+        var file = File(path,"keep.txt")
+        if (!file.exists()) {
+            file.createNewFile()
+        }
+        file.appendText(getTime().time.time.toString()+" "+keep+"\n")
+
+
     }
 
     private fun startBleService(){
-        val intent = Intent()
+        val intent = Intent(Constant.context, BleService.javaClass)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Constant.context!!.startForegroundService(intent)
         }
@@ -84,55 +133,54 @@ class MainFragment: Fragment() {
         }
     }
 
-    fun setBleListener(){
-        val kalman = KalmanFilter(1.0, 1.0, 2.0, 15.0)
-        kalman.setState(0.0, 0.1)
-        var isFirst = true
-        val disposable = connection
-            .subscribeOn(Schedulers.computation())
+    fun setTonicListener(){
+        disposable = Constant.connection!!.subscribeOn(Schedulers.io())
             .flatMap { rxBleConnection -> rxBleConnection.setupNotification(BleService.notificationDataUUID) }
-            .flatMap { notificationObservable -> notificationObservable }
+            .flatMap { it }
             .map { ByteBuffer.wrap(it).int }
             .map { Constant.convertValue(it) }
-            .map { peaksConvert(it.toDouble()) }
-            .subscribe{
-                if(isFirst){
-                    kalman.setState(it, 0.1)
-                    isFirst = false
-                }
-                val dataPoint = DataPoint(Date(),it)
-                peaksSeries.appendData(dataPoint, true, 10000)
-            }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe (
+                {
+                    tonicTextView.text = it.toString()
+                    val peaks = loadPeaks().toString()
+                    peaksTextView.text = peaks
+                },
+                {
+                    Log.e("TonicListener",it.message.toString())
+                })
     }
 
-    private fun peaksConvert(beginValue: Double): Double {
-        val value: Double = beginValue - pastValue
-        pastValue = beginValue
-        return value
+    private fun setConnectionObserver(){
+        val disposable = Constant.device!!.observeConnectionStateChanges()
+            .subscribeOn(Schedulers.computation())
+            .subscribe(
+                {
+                    Log.i("ConnectionState2", it.toString())
+                    if(it.equals(RxBleConnection.RxBleConnectionState.CONNECTED)){
+                        disposable.dispose()
+                        setTonicListener()
+                    }
+                    if (it.equals(RxBleConnection.RxBleConnectionState.DISCONNECTED)){
+
+                    }
+                },
+                {
+                    Log.i("ConnectionState2", it.toString())
+                })
     }
 
-    private fun settingGraph() {
-        graph.addSeries(normalSeries)
-        graph.addSeries(peaksSeries)
-        graph.viewport.isYAxisBoundsManual = true
-        graph.viewport.isXAxisBoundsManual = false
-        graph.viewport.setMinY(-3.0)
-        graph.viewport.setMaxY(3.0)
-        graph.viewport.setMinX(0.0)
-        graph.viewport.setMaxX(15000.0)
-        graph.viewport.isScalable = true
-        graph.viewport.isScrollable = true
-        graph.viewport.setScalableY(false)
-        graph.viewport.setScrollableY(false)
-        graph.setBackgroundColor(Color.WHITE)
-        graph.gridLabelRenderer.gridColor = Color.WHITE
-        graph.gridLabelRenderer.isHorizontalLabelsVisible = false
-        graph.gridLabelRenderer.isVerticalLabelsVisible = false
-        graph.gridLabelRenderer.setHumanRounding(false)
-        graph.gridLabelRenderer.labelFormatter = DateAsXAxisLabelFormatter(activity)
-        graph.gridLabelRenderer.numHorizontalLabels = 3 // only 4 because of the space
-        peaksSeries.color = Color.RED
-        peaksSeries.size = 3f
-        normalSeries.color = Color.BLACK
+    fun loadPeaks():Int {
+        val sPref = Constant.context!!.getSharedPreferences(SHARED_PREFERENCES_TAG,
+            Service.MODE_PRIVATE
+        )
+        val peaksCount = sPref.getInt("Peaks", 0)
+        return peaksCount
     }
+
+
+
+
+
+
 }

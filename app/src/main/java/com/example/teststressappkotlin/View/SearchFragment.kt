@@ -11,6 +11,8 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.teststressappkotlin.*
+import com.example.teststressappkotlin.Service.BleService
+import com.example.teststressappkotlin.Settings.SettingsPresenter
 import com.polidea.rxandroidble2.RxBleClient
 import com.polidea.rxandroidble2.RxBleDevice
 import com.polidea.rxandroidble2.scan.ScanSettings
@@ -20,8 +22,12 @@ import kotlin.collections.ArrayList
 import com.polidea.rxandroidble2.RxBleConnection
 import com.polidea.rxandroidble2.RxBleConnection.RxBleConnectionState
 import io.reactivex.Observable
+import io.reactivex.ObservableSource
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.functions.Consumer
+import io.reactivex.functions.Function
 import io.reactivex.schedulers.Schedulers
+import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 
 
@@ -33,11 +39,9 @@ class SearchFragment: Fragment(), SearchAdapter.CallBack {
     private lateinit var search_button: Button
     private val compositeDisposable:CompositeDisposable
 
-    @Inject
-    lateinit var bleDevice: RxBleDevice
 
     init {
-        Constant.daggerObject!!.inject(this)
+
         compositeDisposable = CompositeDisposable()
     }
 
@@ -77,35 +81,74 @@ class SearchFragment: Fragment(), SearchAdapter.CallBack {
     }
 
     private fun setConnectionListener(){
-        val disposable = bleDevice.observeConnectionStateChanges()
-            .observeOn(Schedulers.computation())
+        //Log.i("ConnectionState", bleDevice.connectionState.toString())
+        if (Constant.device!!.connectionState.equals(RxBleConnectionState.CONNECTED)){
+            getMainFragment()
+        }
+
+        val notificationConnection = Constant.connection!!
+            .flatMap { it.setupNotification(BleService.notificationDataUUID) }
+            .flatMap {it}
+            .subscribe(
+                {
+                    //System.out.println(it)
+                },
+                {
+                    Log.e("ConnectionListener",it.message.toString())
+                })
+
+
+
+
+        val disposable = Constant.device!!.observeConnectionStateChanges()
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { bleState: RxBleConnectionState ->
-                Log.i("ConnectionState", bleState.toString())
-                if (bleState == RxBleConnectionState.CONNECTED) {
+            .subscribe {
+                //Log.i("ConnectionState", it.toString())
+                if (it.equals(RxBleConnectionState.CONNECTED)) {
                     getMainFragment()
                 }
             }
+
         val timerDisposable = Observable.timer(10,TimeUnit.SECONDS)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe{
                 disposable.dispose()
-                Toast.makeText(context,"Соединение не удалось!",Toast.LENGTH_LONG).show()
+                if (Constant.device!!.connectionState
+                        .equals(RxBleConnection.RxBleConnectionState.DISCONNECTED)) {
+                    //Toast.makeText(context, "Соединение не удалось!", Toast.LENGTH_LONG).show()
+                }
             }
         compositeDisposable.add(disposable)
     }
 
     override fun clickItem() {
+        Constant.device = getDevice()
+        Constant.connection = getBleConnection()
         setConnectionListener()
-        if(bleDevice.connectionState.equals(RxBleConnection.RxBleConnectionState.CONNECTED)){
+        if(Constant.device!!.connectionState.equals(RxBleConnection.RxBleConnectionState.CONNECTED)){
             getMainFragment()
         }
     }
 
+
     private fun getMainFragment(){
-        childFragmentManager.beginTransaction()
+        Constant.fragmentManager!!.beginTransaction()
             .replace(R.id.container, MainFragment()).commit()
     }
+
+    fun getDevice(): RxBleDevice{
+        val rxBleClient = RxBleClient.create(Constant.context!!)
+        return rxBleClient.getBleDevice(SettingsPresenter().getDevice()!!)
+    }
+
+    fun getBleConnection(): Observable<RxBleConnection> {
+        return Constant.device!!
+            .establishConnection(true)
+            .replay()
+            .autoConnect()
+    }
+
+
 
 
 }

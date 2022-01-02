@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.teststressappkotlin.Constant
 import com.example.teststressappkotlin.Device
 import com.example.teststressappkotlin.R
+import com.example.teststressappkotlin.Settings.SettingsPresenter
 
 class SearchAdapter(var devices: ArrayList<Device>):
     RecyclerView.Adapter<SearchAdapter.ViewHolder>() {
@@ -43,6 +44,7 @@ class SearchAdapter(var devices: ArrayList<Device>):
         holder.nameView.text = devices[position].name
         holder.macView.text = devices[position].MAC
         holder.itemView.setOnClickListener{
+            SettingsPresenter().saveDevice(devices[position].MAC)
             callBack.clickItem()
         }
     }

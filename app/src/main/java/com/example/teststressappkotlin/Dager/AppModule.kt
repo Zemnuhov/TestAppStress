@@ -21,12 +21,4 @@ class AppModule {
         return rxBleClient.getBleDevice(SettingsPresenter().getDevice()!!)
     }
 
-    @Provides
-    @Singleton
-    fun getBleConnection(): Observable<RxBleConnection> {
-        return getBleDevice()
-            .establishConnection(true)
-            .replay()
-            .autoConnect()
-    }
 }
